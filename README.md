@@ -53,8 +53,9 @@ Stop the numbas-lti containers with `docker-compose down`.
 ## Running in the cloud
 
 Docker Compose files can also be used to deploy to the cloud. See the following documents for more information about deploying Docker to the cloud:
- - [Compose for Amazon ECS](https://docs.docker.com/engine/context/ecs-integration/)
- - [Compose for Microsoft ACI](https://docs.docker.com/engine/context/aci-integration/)
+
+- [Compose for Amazon ECS](https://docs.docker.com/engine/context/ecs-integration/)
+- [Compose for Microsoft ACI](https://docs.docker.com/engine/context/aci-integration/)
 
 ## Upgrading
 
@@ -84,3 +85,10 @@ docker-compose run --rm numbas-setup python ./install
 
 There are several new settings which must be set in `settings.env`.
 Look at `settings.env.dist` to see what they are, copy them across to your `settings.env` file, and make changes if needed.
+
+# Standalone
+
+Create a volumes folder in the current dir.
+docker build --file Dockerfile-self-contained -t lti-test --build-arg POSTGRES_PASSWORD=admin .
+docker run -it --volume ./volumes/data:/data --env-file settings.env -p 80:80 lti-test
+docker run --volume ./volumes/data:/data --entrypoint bash --env-file settings.env lti-test setup.sh

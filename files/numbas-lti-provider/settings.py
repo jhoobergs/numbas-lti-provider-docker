@@ -111,8 +111,8 @@ if DEBUG:
 HUEY = {
 	'huey_class': 'huey.PriorityRedisHuey',
     'connection': {
-        'host': 'redis',
-        'port': 6379,
+        'host': os.environ.get('REDIS_HOST','redis'),
+        'port': int(os.environ.get('REDIS_PORT','6379')),
     },
 }
 
@@ -179,7 +179,7 @@ DATABASES = {
         'NAME': 'numbas_lti',
         'USER': 'numbas_lti',
         'PASSWORD': env('POSTGRES_PASSWORD'),
-        'HOST': 'postgres',
+        'HOST': env('POSTGRES_HOST'),
     }
 }
 
@@ -190,7 +190,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get('REDIS_URL','redis://redis:6379')],
+                        "hosts": ['redis://' + os.environ.get('REDIS_HOST','redis') + ":" + os.environ.get('REDIS_PORT', '6379')],
         },
     },
 }
@@ -204,10 +204,10 @@ LANGUAGE_CODE = env('LANGUAGE_CODE')
 TIME_ZONE = env('TIME_ZONE')
 
 # The filesystem path where media files are stored.
-MEDIA_ROOT = '/srv/numbas-lti-media/'
+MEDIA_ROOT = '/opt/numbas-lti-media/'
 
 # The filesystem path where static files are stored.
-STATIC_ROOT = '/srv/numbas-lti-static/'
+STATIC_ROOT = '/opt/numbas-lti-static/'
 
 # The name of your support contact.
 SUPPORT_NAME = env('SUPPORT_NAME')
