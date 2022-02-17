@@ -88,7 +88,8 @@ Look at `settings.env.dist` to see what they are, copy them across to your `sett
 
 # Standalone
 
-docker volume create numbas_lti
-docker build --file Dockerfile-self-contained -t lti-test --build-arg POSTGRES_PASSWORD=admin .
-docker run --rm --volume numbas_lti:/data --entrypoint bash --env-file settings.env lti-test setup.sh
-docker run --rm --volume numbas_lti:/data --env-file settings.env -p 80:80 lti-test
+- docker volume create numbas_lti
+- docker build --file Dockerfile-self-contained -t lti-test --build-arg POSTGRES_PASSWORD=admin .
+- docker run --rm --volume numbas_lti:/data --entrypoint bash --env-file settings.env lti-test setup.sh
+- docker run --rm --volume numbas_lti:/data --env-file settings.env -p 80:80 lti-test
+- docker run --rm --volume numbas_lti:/data --entrypoint bash --env-file settings.env lti-test update.sh

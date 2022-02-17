@@ -4,20 +4,19 @@ FROM ubuntu:20.04
 RUN DEBIAN_FRONTEND="noninteractive" apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y \
     git redis-server postgresql postgresql-server-dev-all \
     libxml2-dev libxslt1-dev python-dev lib32z1-dev python3-pip supervisor nginx sudo 
-#RUN pip3 install virtualenv
+# Set postgres data location to /data/db
+RUN sed -i 's/\/var\/lib\/postgresql\/12\/main/\/data\/db/g' /etc/postgresql/12/main/postgresql.conf
+RUN python3 -m pip install django-environ==0.7.0 redis channels_redis==3.3.0 psycopg2==2.8.6
 
-ARG NUMBAS_LTI_VERSION=v3_STABLE
-ENV NUMBAS_LTI_VERSION=$NUMBAS_LTI_VERSION
+ARG NUMBAS_LTI_REPO="https://github.com/numbas/numbas-lti-provider.git"
+ARG NUMBAS_LTI_BRANCH="v3_STABLE"
 
 # get the numbas-lti-provider code
-RUN git clone --depth 1 --branch ${NUMBAS_LTI_VERSION} https://github.com/numbas/numbas-lti-provider.git /opt/numbas-lti-provider
+RUN git clone --depth 1 --branch ${NUMBAS_LTI_BRANCH} ${NUMBAS_LTI_REPO} /opt/numbas-lti-provider
 
 # set up user group
 RUN adduser --disabled-password --gecos "" numbas_lti && adduser --disabled-password --gecos "" www-data numbas_lti
 RUN chown -R numbas_lti:numbas_lti /opt/numbas-lti-provider
-
-ARG POSTGRES_PASSWORD 
-ENV POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 
 COPY files/nginx/templates/self_contained.conf.template /etc/nginx/sites-available/default
 COPY files/supervisord/conf /etc/supervisor/conf.d/numbas_lti.conf
@@ -25,19 +24,9 @@ COPY files/numbas-lti-provider/settings.py /opt/numbas-lti-provider/numbasltipro
 
 RUN chown numbas_lti:numbas_lti /opt/numbas-lti-provider/numbasltiprovider/settings.py
 
-COPY install.sh /tmp
-COPY setup.sh /tmp
-WORKDIR /tmp
-RUN bash install.sh
+WORKDIR /opt/numbas-lti-provider
+RUN python3 -m pip install -r requirements.txt
 
-RUN rm install.sh
+COPY setup.sh update.sh run.sh files/numbas-lti-provider/install /tmp/
 
-RUN python3 -m pip install django-environ==0.7.0 redis
-
-COPY files/numbas-lti-provider/install .
-
-COPY run.sh .
-
-RUN sed -i 's/\/var\/lib\/postgresql\/12\/main/\/data\/db/g' /etc/postgresql/12/main/postgresql.conf
-
-CMD bash run.sh
+CMD bash /tmp/run.sh
