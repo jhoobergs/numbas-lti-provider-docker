@@ -88,8 +88,30 @@ Look at `settings.env.dist` to see what they are, copy them across to your `sett
 
 # Standalone
 
-- docker volume create numbas_lti
-- docker build --file Dockerfile-self-contained -t lti-test --build-arg POSTGRES_PASSWORD=admin .
-- docker run --rm --volume numbas_lti:/data --entrypoint bash --env-file settings.env lti-test setup.sh
-- docker run --rm --volume numbas_lti:/data --env-file settings.env -p 80:80 lti-test
-- docker run --rm --volume numbas_lti:/data --entrypoint bash --env-file settings.env lti-test update.sh
+## Building
+
+- `docker build --file Dockerfile-self-contained -t lti-test .`
+
+### Options
+
+- Choosing the repo to get the lti provider from: `docker build --file Dockerfile-self-contained -t lti-test --build-arg NUMBAS_LTI_REPO="https://github.com/jhoobergs/numbas-lti-provider.git " .`
+- You can also specify a `NUMBAS_LTI_BRANCH` to change the branch
+
+## Running
+
+Make sure that you copied `settings.env.dist`to `settings.env` and changed the values. This env variable will need to be set.
+
+### Running setup
+
+- `docker run --rm --volume numbas_lti:/data --entrypoint bash --env-file settings.env lti-test setup.sh`
+
+### Running
+
+- Create the volume (once): `docker volume create numbas_lti`
+- There should be a volume mounted to `/data`
+- `docker run --rm --volume numbas_lti:/data --env-file settings.env -p 80:80 lti-test`
+
+### Updating after new version
+
+- `docker run --rm --volume numbas_lti:/data --entrypoint bash --env-file settings.env lti-test update.sh`
+- Runs migration and generation of static files
