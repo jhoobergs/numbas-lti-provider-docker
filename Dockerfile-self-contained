@@ -1,3 +1,30 @@
+ARG PYTHON_VERSION="3.8.12-slim-buster"
+FROM python:${PYTHON_VERSION} AS backend-builder
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    netcat=1.* \
+    libpq-dev=11.* \
+    unixodbc-dev=2.* \
+    g++=4:* \
+    libssl-dev=1.* \
+   git \
+    curl \
+ && apt-get clean
+
+WORKDIR /tmp
+
+COPY numbas-lti-provider/requirements.txt /tmp
+
+RUN python3 -m pip install --upgrade pip \
+ && echo "django-environ==0.7.0" >> requirements.txt \
+ && echo "redis" >> requirements.txt \
+ && echo "channels_redis==3.3.0" >> requirements.txt \
+ && echo "psycopg2==2.8.6" >> requirements.txt \
+ && pip install --no-cache-dir -r requirements.txt \
+ && pip wheel --no-cache-dir -r requirements.txt -w /deps
+
+
 FROM ubuntu:20.04
 
 # install packages
@@ -6,26 +33,32 @@ RUN DEBIAN_FRONTEND="noninteractive" apt-get update && DEBIAN_FRONTEND="noninter
     libxml2-dev libxslt1-dev python-dev lib32z1-dev python3-pip supervisor nginx sudo 
 # Set postgres data location to /data/db
 RUN sed -i 's/\/var\/lib\/postgresql\/12\/main/\/data\/db/g' /etc/postgresql/12/main/postgresql.conf
-RUN python3 -m pip install django-environ==0.7.0 redis channels_redis==3.3.0 psycopg2==2.8.6
+
+COPY --from=backend-builder /deps /deps
+# hadolint ignore=DL3013
+RUN python3 -m pip install --no-cache-dir -U pip \
+ && python3 -m pip install --no-cache-dir /deps/*.whl \
+ && rm -rf /deps
 
 ARG NUMBAS_LTI_REPO="https://github.com/numbas/numbas-lti-provider.git"
 ARG NUMBAS_LTI_BRANCH="v3_STABLE"
 
 # get the numbas-lti-provider code
 RUN git clone --depth 1 --branch ${NUMBAS_LTI_BRANCH} ${NUMBAS_LTI_REPO} /opt/numbas-lti-provider
+# Use line below for local version
+# COPY numbas-lti-provider /opt/numbas-lti-provider
 
 # set up user group
 RUN adduser --disabled-password --gecos "" numbas_lti && adduser --disabled-password --gecos "" www-data numbas_lti
-RUN chown -R numbas_lti:numbas_lti /opt/numbas-lti-provider
 
 COPY files/nginx/templates/self_contained.conf.template /etc/nginx/sites-available/default
 COPY files/supervisord/conf /etc/supervisor/conf.d/numbas_lti.conf
 COPY files/numbas-lti-provider/settings.py /opt/numbas-lti-provider/numbasltiprovider/settings.py
+COPY files/numbas-lti-provider/admin.py /opt/numbas-lti-provider/numbas_lti/admin.py
 
-RUN chown numbas_lti:numbas_lti /opt/numbas-lti-provider/numbasltiprovider/settings.py
+RUN chown -R numbas_lti:numbas_lti /opt/numbas-lti-provider
 
 WORKDIR /opt/numbas-lti-provider
-RUN python3 -m pip install -r requirements.txt
 
 COPY setup.sh update.sh run.sh files/numbas-lti-provider/install /tmp/
 
